@@ -1,0 +1,38 @@
+version: "3.8"  # Hoặc phiên bản Docker Compose mới hơn nếu bạn muốn
+services:
+  backend:
+    build:
+      context: ./backend  # Đường dẫn đến thư mục chứa Dockerfile của backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  # Map port 8000 của container đến port 8000 của host
+    environment:
+      REDIS_HOST: 35.186.157.236  # Tên service redis (để Docker Compose tự động phân giải)
+      REDIS_PORT: 6379
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend  # Đường dẫn đến thư mục chứa Dockerfile của frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"  # Map port 3000 của host đến port 80 (nginx) của container
+    environment:
+      REACT_APP_API_BASE_URL: http://backend:8000  # Sử dụng tên service backend
+      REACT_APP_WS_BASE_URL: ws://backend:8000    # Sử dụng tên service backend
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  # redis:
+  #   image: "redis:alpine"  # Sử dụng image Redis chính thức
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge
