@@ -4,8 +4,8 @@ from pydantic import BaseModel
 import redis
 import redis.exceptions
 import redis.asyncio as aioredis
+import redis.asyncio as redis
 import json
-import asyncio
 import logging
 from typing import Dict
 from dotenv import load_dotenv
@@ -27,8 +27,8 @@ app.add_middleware(
 
 # Load environment variables
 load_dotenv()
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_CHANNEL = "chat"
 
 # Redis connection
