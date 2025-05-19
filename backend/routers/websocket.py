@@ -1,3 +1,4 @@
+# /app/routers/websocket.py
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 from redis_client import get_redis
@@ -18,6 +19,9 @@ async def chat_ws(websocket: WebSocket, username: str):
         messages = [json.loads(m) for m in messages_raw]
         await websocket.send_json({"type": "history", "messages": messages})
 
+        # Send danh sách người dùng ngay sau khi kết nối
+        await websocket.send_json({"type": "users", "users": list(manager.active_connections.keys())})
+
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
@@ -36,7 +40,7 @@ async def chat_ws(websocket: WebSocket, username: str):
                 print(f"Ignored message with type: {message.get('type')}")
 
     except WebSocketDisconnect:
-        manager.disconnect(username)
+        await manager.disconnect(username)  # Thêm await
     except Exception as e:
-        manager.disconnect(username)
+        await manager.disconnect(username)  # Thêm await
         print(f"WebSocket error: {e}")

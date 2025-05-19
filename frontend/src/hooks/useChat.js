@@ -5,6 +5,7 @@ import { fetchMessages, connectWebSocket } from '../services/api';
 const useChat = (username) => {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const wsRef = useRef(null);
 
   useEffect(() => {
@@ -23,6 +24,12 @@ const useChat = (username) => {
         ]);
       } else if (data.type === 'users') {
         setOnlineUsers(data.users);
+      } else if (data.type === 'notification') {
+        const newNotification = { id: Date.now(), content: data.content };
+        setNotifications((prev) => [...prev, newNotification]);
+        setTimeout(() => {
+          setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id));
+        }, 3000);
       }
     });
 
@@ -40,13 +47,18 @@ const useChat = (username) => {
       console.error('WebSocket not connected or not open');
       return;
     }
-    console.log('Sending:', { type, username, content });
-    ws.send(JSON.stringify({ type, username, content }));
+    const timestamp = new Date().toISOString(); // Tạo timestamp ở frontend
+    console.log('Sending:', { type, username, content, timestamp });
+    ws.send(JSON.stringify({ type, username, content, timestamp }));
   };
 
   const sendSticker = (content) => sendMessage(content, 'sticker');
 
-  return { messages, sendMessage, sendSticker, onlineUsers };
+  const closeNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  return { messages, sendMessage, sendSticker, onlineUsers, notifications, closeNotification };
 };
 
 export default useChat;

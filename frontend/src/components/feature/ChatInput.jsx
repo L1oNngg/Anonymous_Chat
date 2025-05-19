@@ -1,7 +1,7 @@
 import { useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import stickers from "../data/stickers";
-import "./ChatInput.css";
+import '../../styles/components/ChatInput.css';
 
 function ChatInput({ onSendMessage, onSendSticker }) {
   const [message, setMessage] = useState("");

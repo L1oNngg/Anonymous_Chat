@@ -1,0 +1,49 @@
+/* src/styles/common/Notification.css */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.notification-content {
+  background: rgba(0, 0, 0, 0.7); /* Nền trong suốt */
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px; /* Viền bo góc */
+  border: 1px solid #00ff00; /* Viền xanh neon trendy */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Orbitron', sans-serif; /* Font trendy */
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.notification-close:hover {
+  color: #00ff00;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

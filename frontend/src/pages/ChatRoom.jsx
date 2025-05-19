@@ -1,3 +1,4 @@
+// src/pages/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import Button from '../components/common/Button';
@@ -5,6 +6,8 @@ import ChatMessage from '../components/feature/ChatMessage';
 import MatrixBackground from '../components/common/MatrixBackground';
 import useChat from '../hooks/useChat';
 import stickers from '../data/stickers';
+import Notification from '../components/common/Notification';
+import '../styles/pages/ChatRoom.css';
 
 const EMOJIS = ['😀', '😂', '😎', '🥺', '❤️', '🔥', '👍', '🎉'];
 
@@ -15,12 +18,16 @@ const ChatRoom = () => {
   const [showStickers, setShowStickers] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
   const [error, setError] = useState('');
+  const [showOnlineUsers, setShowOnlineUsers] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const { messages, sendMessage, sendSticker, onlineUsers = [] } = useChat(username);
+  const chatContainerRef = useRef(null); // Thêm ref cho container chat
+  const { messages, sendMessage, sendSticker, onlineUsers = [], notifications, closeNotification } = useChat(username);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight; // Cuộn xuống cuối
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -47,7 +54,6 @@ const ChatRoom = () => {
     }
   };
 
-  // Sửa chỗ này: dùng sendSticker thay vì sendMessage khi chọn sticker
   const handleStickerSelect = (stickerUrl) => {
     sendSticker(stickerUrl);
     setShowStickers(false);
@@ -60,18 +66,38 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
+    <div className="relative w-full h-screen bg-transparent overflow-hidden">
       <MatrixBackground />
-      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 z-10">
-        <div className="flex flex-col md:flex-row gap-6 w-full max-w-5xl">
-          {/* Chat Box */}
-          <div className="flex-1 bg-black bg-opacity-70 p-6 rounded-lg shadow-[0_0_30px_5px_rgba(0,0,0,0.5)]">
-            <h2 className="font-orbitron text-2xl text-green-500 mb-4">
-              Anonymous Chat Room
-            </h2>
-            <p className="mb-4 text-white">Username: {username}</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 z-10 bg-transparent">
+        {notifications.map((notification) => (
+          <Notification
+            key={notification.id}
+            id={notification.id}
+            content={notification.content}
+            onClose={closeNotification}
+          />
+        ))}
+        <div className="flex flex-col md:flex-row gap-6 w-full max-w-7xl">
+          <div className="flex-1 bg-gray-900 bg-opacity-80 p-6 rounded-lg shadow-[0_0_20px_rgba(0,255,0,0.3)]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-orbitron text-3xl text-green-500 font-bold">
+                Anonymous Chat Room
+              </h2>
+              <Button
+                type="button"
+                className="px-4 py-2 text-base bg-gray-700 hover:bg-gray-600 rounded-lg"
+                onClick={() => setShowOnlineUsers(!showOnlineUsers)}
+              >
+                {showOnlineUsers ? 'Hide Users' : 'Show Users'}
+              </Button>
+            </div>
+            <p className="mb-6 text-lg text-white font-medium">Username: {username}</p>
 
-            <div className="h-64 bg-gray-800 p-4 rounded-md overflow-y-auto mb-4 scroll-smooth">
+            <div
+              ref={chatContainerRef}
+              className="h-[500px] bg-gray-800 bg-opacity-90 p-4 rounded-md overflow-y-auto scroll-smooth custom-scrollbar"
+              style={{ maxHeight: '500px', overflowY: 'auto' }} // Đảm bảo chiều cao cố định
+            >
               {messages.map((msg, index) => (
                 <ChatMessage
                   key={index}
@@ -79,30 +105,26 @@ const ChatRoom = () => {
                   message={msg.message}
                   timestamp={msg.timestamp}
                   isOwnMessage={msg.username === username}
-                  isSticker={
-                    typeof msg.message === 'string' &&
-                    (msg.message.endsWith('.png') || msg.message.endsWith('.gif'))
-                  }
                 />
               ))}
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
-              <div className="flex items-center">
+            <form onSubmit={handleSendMessage} className="flex flex-col gap-4 mt-6">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   ref={inputRef}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="flex-1 p-3 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400 bg-gray-700 text-white"
                 />
-                <Button type="submit" className="ml-2">Send</Button>
+                <Button type="submit" className="px-4 py-2">Send</Button>
                 <button
                   type="button"
                   onClick={() => setShowStickers((prev) => !prev)}
-                  className="ml-2 px-2 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 sticker-panel"
+                  className="px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
                   title="Send Sticker"
                 >
                   📦
@@ -110,17 +132,17 @@ const ChatRoom = () => {
                 <button
                   type="button"
                   onClick={() => setShowEmojis((prev) => !prev)}
-                  className="ml-2 px-2 py-1 bg-pink-500 text-white rounded-md hover:bg-pink-600 emoji-panel"
+                  className="px-3 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600"
                   title="Add Emoji"
                 >
                   😊
                 </button>
               </div>
 
-              {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+              {error && <p className="text-red-400 text-base mt-2">{error}</p>}
 
               {showEmojis && (
-                <div className="emoji-panel flex flex-wrap gap-2 p-2 bg-white rounded-md shadow-md border w-fit max-w-full">
+                <div className="emoji-panel flex flex-wrap gap-2 p-3 bg-gray-800 bg-opacity-90 rounded-md shadow-md border border-gray-600 w-fit max-w-full">
                   {EMOJIS.map((emoji, index) => (
                     <button
                       key={index}
@@ -135,39 +157,39 @@ const ChatRoom = () => {
               )}
 
               {showStickers && (
-                <div className="sticker-panel absolute z-10 flex flex-wrap gap-3 p-3 bg-white rounded-md shadow-md border w-fit max-w-[300px] max-h-64 overflow-y-auto">
-                  {stickers.map((sticker) => {
-                    console.log('Rendering sticker:', sticker.src);
-                    return (
-                      <img
-                        key={sticker.id}
-                        src={sticker.src}
-                        alt={sticker.alt}
-                        className="w-16 h-16 cursor-pointer hover:scale-105 transition-transform"
-                        onClick={() => handleStickerSelect(sticker.src)}
-                      />
-                    );
-                  })}
+                <div className="sticker-panel absolute z-10 flex flex-wrap gap-3 p-3 bg-gray-800 bg-opacity-90 rounded-md shadow-md border border-gray-600 w-fit max-w-[300px] max-h-64 overflow-y-auto">
+                  {stickers.map((sticker) => (
+                    <img
+                      key={sticker.id}
+                      src={sticker.src}
+                      alt={sticker.alt}
+                      className="w-16 h-16 cursor-pointer hover:scale-105 transition-transform"
+                      onClick={() => handleStickerSelect(sticker.src)}
+                    />
+                  ))}
                 </div>
               )}
             </form>
           </div>
 
-          {/* Online Users Panel */}
-          <div className="w-full md:w-64 bg-gray-900 bg-opacity-70 p-4 rounded-lg text-white shadow-inner">
-            <h3 className="font-bold text-lg mb-2">🟢 Online Users</h3>
-            <ul className="list-disc list-inside space-y-1 text-sm max-h-64 overflow-y-auto">
-              {onlineUsers.length > 0 ? (
-                onlineUsers.map((user, i) => (
-                  <li key={i} className={user === username ? 'text-green-400 font-bold' : ''}>
-                    {user}
-                  </li>
-                ))
-              ) : (
-                <li>No users online</li>
-              )}
-            </ul>
-          </div>
+          {showOnlineUsers && (
+            <div className="w-full md:w-64 bg-gray-900 bg-opacity-80 p-4 rounded-lg text-white shadow-inner transition-all duration-300">
+              <h3 className="font-bold text-xl mb-4">
+                🟢 Online Users ({onlineUsers.length})
+              </h3>
+              <ul className="list-disc list-inside space-y-2 text-base max-h-64 overflow-y-auto custom-scrollbar">
+                {onlineUsers.length > 0 ? (
+                  onlineUsers.map((user, i) => (
+                    <li key={i} className={user === username ? 'text-green-400 font-semibold' : ''}>
+                      {user}
+                    </li>
+                  ))
+                ) : (
+                  <li>No users online</li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
