@@ -3,6 +3,7 @@ import json
 from redis_client import get_redis
 from config import REDIS_CHANNEL
 from manager import manager
+from datetime import datetime
 
 websocket_router = APIRouter()
 
@@ -20,17 +21,20 @@ async def chat_ws(websocket: WebSocket, username: str):
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
+            print(f"Received WebSocket data: {message}")
 
-            if message.get("type") == "message":
+            if message.get("type") in ["message", "sticker"]:
                 msg = {
+                    "type": message["type"],
                     "username": username,
-                    "content": message["content"]
+                    "content": message["content"],
+                    "timestamp": message.get("timestamp", datetime.utcnow().isoformat())
                 }
                 await redis_client.rpush(REDIS_CHANNEL, json.dumps(msg))
-                await manager.broadcast({
-                    "type": "message",
-                    **msg
-                })
+                await manager.broadcast(msg)
+            else:
+                print(f"Ignored message with type: {message.get('type')}")
+
     except WebSocketDisconnect:
         manager.disconnect(username)
     except Exception as e:

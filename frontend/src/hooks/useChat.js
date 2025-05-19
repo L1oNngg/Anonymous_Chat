@@ -1,51 +1,52 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchMessages, createWebSocket, sendMessage } from '../services/api';
+// src/hooks/useChat.js
+import { useState, useEffect, useRef } from 'react';
+import { fetchMessages, connectWebSocket } from '../services/api';
 
-const useChat = (username, delay = 500) => {
+const useChat = (username) => {
   const [messages, setMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const wsRef = useRef(null);
 
-  const loadInitialMessages = useCallback(async () => {
-    try {
-      const initialMessages = await fetchMessages();
-      setMessages(initialMessages);
-    } catch (error) {
-      console.error('Failed to load initial messages:', error);
-    }
-  }, []);
+  useEffect(() => {
+    if (!username) return;
 
-  const setupWebSocket = useCallback(() => {
-    if (username) {
-      wsRef.current = createWebSocket(
-        username,
-        (newMessages) => {
-          setMessages((prevMessages) => [...prevMessages, ...newMessages]);
-        },
-        () => { console.log('WebSocket connected in hook'); },
-        () => { console.log('WebSocket disconnected in hook'); },
-        (error) => { console.error('WebSocket error in hook:', error); }
-      );
-    }
-    return () => { if (wsRef.current) wsRef.current.close(); };
+    fetchMessages()
+      .then((msgs) => setMessages(msgs))
+      .catch((err) => console.error('Lỗi fetch messages:', err));
+
+    const socket = connectWebSocket(username, (data) => {
+      console.log('WebSocket received:', data);
+      if (data.type === 'message' || data.type === 'sticker') {
+        setMessages((prev) => [
+          ...prev,
+          { username: data.username, message: data.content, timestamp: data.timestamp },
+        ]);
+      } else if (data.type === 'users') {
+        setOnlineUsers(data.users);
+      }
+    });
+
+    wsRef.current = socket;
+
+    return () => {
+      socket.close();
+      wsRef.current = null;
+    };
   }, [username]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setupWebSocket();
-    }, delay);
+  const sendMessage = (content, type = 'message') => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not connected or not open');
+      return;
+    }
+    console.log('Sending:', { type, username, content });
+    ws.send(JSON.stringify({ type, username, content }));
+  };
 
-    return () => clearTimeout(timer);
-  }, [username, setupWebSocket, delay]);
+  const sendSticker = (content) => sendMessage(content, 'sticker');
 
-  const handleSendMessage = useCallback((content) => {
-    sendMessage(wsRef.current, content);
-  }, []);
-
-  useEffect(() => {
-    loadInitialMessages();
-  }, [loadInitialMessages]);
-
-  return { messages, sendMessage: handleSendMessage };
+  return { messages, sendMessage, sendSticker, onlineUsers };
 };
 
 export default useChat;
