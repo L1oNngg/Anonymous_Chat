@@ -10,7 +10,7 @@ const Welcome = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (username.trim()) {
-      navigate('/chat', { state: { username } });
+      navigate('/rooms', { state: { username } });
     }
   };
 

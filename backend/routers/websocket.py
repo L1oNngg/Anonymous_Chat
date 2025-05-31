@@ -18,11 +18,6 @@ async def chat_ws(websocket: WebSocket, username: str):
     redis_client = get_redis()
 
     try:
-        # Gửi lịch sử tin nhắn
-        messages_raw = await redis_client.lrange(REDIS_CHANNEL, 0, -1)
-        messages = [json.loads(m) for m in messages_raw]
-        await websocket.send_json({"type": "history", "messages": messages})
-
         # Gửi danh sách người dùng
         await websocket.send_json({"type": "users", "users": list(manager.active_connections.keys())})
 
@@ -32,14 +27,25 @@ async def chat_ws(websocket: WebSocket, username: str):
             print(f"Received WebSocket data: {message}")
 
             if message.get("type") in ["message", "sticker"]:
+                room_id = message.get("roomId")
+                if not room_id:
+                    continue  # Bỏ qua nếu không có roomId
+
                 msg = {
                     "type": message["type"],
                     "username": username,
                     "content": message["content"],
                     "timestamp": message.get("timestamp", datetime.utcnow().isoformat())
                 }
-                await redis_client.rpush(REDIS_CHANNEL, json.dumps(msg))
-                await manager.broadcast(msg)
+                # Lưu tin nhắn vào Redis theo roomId
+                room_channel = f"{REDIS_CHANNEL}:{room_id}"
+                await redis_client.rpush(room_channel, json.dumps(msg))
+                # Gửi tin nhắn đến tất cả người dùng trong phòng
+                for user, ws in manager.active_connections.items():
+                    try:
+                        await ws.send_json(msg)
+                    except Exception as e:
+                        print(f"Failed to send message to {user}: {e}")
             else:
                 print(f"Ignored message with type: {message.get('type')}")
 

@@ -1,22 +1,22 @@
 // src/services/api.js
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-const WS_BASE_URL = process.env.REACT_APP_WS_BASE_URL || 'ws://localhost:8000';
+// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+// const WS_BASE_URL = process.env.REACT_APP_WS_BASE_URL || 'ws://localhost:8000';
 
-// const API_BASE_URL = 'http://localhost:8000'; // Local testing
-// const WS_BASE_URL = 'ws://localhost:8000';    // Local testing
+const API_BASE_URL = 'http://localhost:8000';
+const WS_BASE_URL = 'ws://localhost:8000';
 
-// Fetch messages from backend
-const fetchMessages = async () => {
+const fetchMessages = async (roomId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages/`);
+    const response = await fetch(`${API_BASE_URL}/messages/${roomId}/`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    return data.map(msg => ({
+    return data.map((msg) => ({
       username: msg.username,
       message: msg.content,
+      timestamp: msg.timestamp,
     }));
   } catch (error) {
     console.error('Error fetching messages:', error);
@@ -24,15 +24,14 @@ const fetchMessages = async () => {
   }
 };
 
-// Send message via REST
-const sendMessage = async (username, content) => {
+const sendMessage = async (username, content, roomId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/send/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, content }),
+      body: JSON.stringify({ username, content, roomId }),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -44,12 +43,11 @@ const sendMessage = async (username, content) => {
   }
 };
 
-// Connect WebSocket
-const connectWebSocket = (username, onMessageReceived, onWebSocketError, onWebSocketClose) => {
-  const ws = new WebSocket(`${WS_BASE_URL}/ws/chat/${username}`);
+const connectWebSocket = (username, roomId, onMessageReceived, onWebSocketError, onWebSocketClose) => {
+  const ws = new WebSocket(`${WS_BASE_URL}/ws/chat/${username}`); // Bỏ roomId trong URL
 
   ws.onopen = () => {
-    console.log(`WebSocket connected for ${username}`);
+    console.log(`WebSocket connected for ${username} in room ${roomId}`);
   };
 
   ws.onmessage = (event) => {
@@ -66,40 +64,45 @@ const connectWebSocket = (username, onMessageReceived, onWebSocketError, onWebSo
     if (onWebSocketError) onWebSocketError(error);
   };
 
-  ws.onclose = () => {
-    console.log('WebSocket disconnected');
-    if (onWebSocketClose) onWebSocketClose();
+  ws.onclose = (event) => {
+    console.log('WebSocket closed:', event);
+    if (event.reason) {
+      onWebSocketClose(event.reason);
+    } else {
+      onWebSocketClose('WebSocket disconnected unexpectedly.');
+    }
   };
 
   return ws;
 };
 
-// Send WebSocket text message
-const sendWebSocketMessage = (ws, content) => {
+const sendWebSocketMessage = (ws, content, roomId, username) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'message',
+      username,
       content,
-      timestamp: new Date().toISOString()
+      roomId,
+      timestamp: new Date().toISOString(),
     }));
   } else {
     console.error('WebSocket is not open. Cannot send message.');
   }
 };
 
-// Send WebSocket sticker
-const sendSticker = (ws, content) => {
+const sendSticker = (ws, content, roomId, username) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     console.log('Sending sticker via WebSocket:', content);
     ws.send(JSON.stringify({
       type: 'sticker',
+      username,
       content,
-      timestamp: new Date().toISOString()
+      roomId,
+      timestamp: new Date().toISOString(),
     }));
   } else {
     console.error('WebSocket is not open. Cannot send sticker.');
   }
 };
 
-// Export everything you need
-export { fetchMessages,  sendMessage,  connectWebSocket,  sendWebSocketMessage,  sendSticker };
+export { fetchMessages, sendMessage, connectWebSocket, sendWebSocketMessage, sendSticker };

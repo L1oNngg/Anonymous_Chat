@@ -8,6 +8,9 @@ module.exports = {
           500: '#4CAF50',
         },
       },
+      fontFamily: {
+        orbitron: ['"Orbitron"', "sans-serif"],
+      },
     },
   },
   variants: {
