@@ -10,7 +10,12 @@ const Welcome = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (username.trim()) {
-      navigate('/rooms', { state: { username } });
+      const validUsername = /^[a-zA-Z0-9-_]+$/.test(username);
+      if (!validUsername) {
+        alert('Username chỉ được chứa chữ cái, số, dấu gạch ngang (-) hoặc gạch dưới (_).');
+        return;
+      }
+      navigate('/rooms', { state: { username } }); // Không tạo sessionId ở đây
     }
   };
 

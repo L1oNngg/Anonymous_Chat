@@ -10,16 +10,36 @@ websocket_router = APIRouter()
 
 @websocket_router.websocket("/ws/chat/{username}")
 async def chat_ws(websocket: WebSocket, username: str):
-    client_ip = websocket.client.host if websocket.client else "unknown"
-    # Kiểm tra kết nối
-    if not await manager.connect(websocket, username, client_ip):
-        return  # Kết nối bị từ chối do giới hạn IP
+    client_ip = websocket.headers.get("X-Forwarded-For", "unknown")
+    session_id = websocket.query_params.get("sessionId", "")
+    print(f"WebSocket connection attempt for {username} with sessionId: {session_id}")
+    if not session_id or (username not in manager.sessions) or (session_id not in manager.sessions[username]):
+        await websocket.close(code=1008, reason="Invalid session ID")
+        print(f"Rejected WebSocket connection for {username}: Invalid session ID")
+        return
+
+    room_id = "1"  # Mặc định room_id là "1", có thể mở rộng để nhận từ query params nếu cần
+    if not await manager.connect(websocket, username, client_ip, room_id):
+        return
 
     redis_client = get_redis()
 
     try:
-        # Gửi danh sách người dùng
-        await websocket.send_json({"type": "users", "users": list(manager.active_connections.keys())})
+        # Gửi sessionId khi kết nối thành công
+        await websocket.send_json({"type": "session", "sessionId": session_id})
+
+        # Lấy danh sách người dùng online trong phòng
+        active_users = set()
+        for session_users in manager.active_connections.get(room_id, {}).values():
+            active_users.update(session_users.keys())
+        # active_users.discard(username)  # Loại bỏ chính mình khỏi danh sách (BỎ DÒNG NÀY)
+        await websocket.send_json({"type": "users", "users": list(active_users)})
+
+        # Gửi lịch sử tin nhắn
+        room_channel = f"{REDIS_CHANNEL}:{room_id}"
+        messages_raw = await redis_client.lrange(room_channel, 0, -1)
+        messages = [json.loads(m) for m in messages_raw if json.loads(m).get("type") in ["message", "sticker"]]
+        await websocket.send_json({"type": "history", "messages": messages})
 
         while True:
             data = await websocket.receive_text()
@@ -27,30 +47,35 @@ async def chat_ws(websocket: WebSocket, username: str):
             print(f"Received WebSocket data: {message}")
 
             if message.get("type") in ["message", "sticker"]:
-                room_id = message.get("roomId")
-                if not room_id:
-                    continue  # Bỏ qua nếu không có roomId
-
+                room_id = message.get("roomId", "1")
                 msg = {
                     "type": message["type"],
                     "username": username,
                     "content": message["content"],
+                    "roomId": room_id,
                     "timestamp": message.get("timestamp", datetime.utcnow().isoformat())
                 }
-                # Lưu tin nhắn vào Redis theo roomId
                 room_channel = f"{REDIS_CHANNEL}:{room_id}"
                 await redis_client.rpush(room_channel, json.dumps(msg))
-                # Gửi tin nhắn đến tất cả người dùng trong phòng
-                for user, ws in manager.active_connections.items():
-                    try:
-                        await ws.send_json(msg)
-                    except Exception as e:
-                        print(f"Failed to send message to {user}: {e}")
+                await manager.broadcast(msg, room_id)
+                print(f"Broadcast message to room {room_id}: {msg}")
+            elif message.get("type") == "publicKey":
+                room_id = message.get("roomId", "1")
+                public_key_msg = {
+                    "type": "publicKey",
+                    "username": username,
+                    "publicKey": message["publicKey"],
+                    "roomId": room_id
+                }
+                manager.store_public_key(username, message["publicKey"])  # Lưu trữ publicKey
+                await manager.broadcast(public_key_msg, room_id)
+                print(f"Broadcast publicKey for {username} to room {room_id}: {public_key_msg}")
             else:
                 print(f"Ignored message with type: {message.get('type')}")
 
-    except WebSocketDisconnect:
-        await manager.disconnect(username, client_ip)
+    except WebSocketDisconnect as e:
+        print(f"WebSocket disconnected for {username}: {e}")
+        await manager.disconnect(websocket, username, client_ip, room_id)
     except Exception as e:
-        await manager.disconnect(username, client_ip)
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket error for {username}: {e}")
+        await manager.disconnect(websocket, username, client_ip, room_id)

@@ -8,20 +8,25 @@ import useChat from '../hooks/useChat';
 import Notification from '../components/common/Notification';
 import '../styles/pages/ChatRoom.css';
 
-const ChatRoom = ({ username, roomId, room }) => {
+const ChatRoom = ({ username, roomId, room }) =>
+{
   const [showOnlineUsers, setShowOnlineUsers] = useState(true);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const { messages, sendMessage, sendSticker, onlineUsers = [], notifications, closeNotification } = useChat(
-    username,
-    roomId
-  );
+  const { messages = [], sendMessage, sendSticker, onlineUsers = [], notifications = [], closeNotification } = useChat(username, roomId) || {};
 
-  useEffect(() => {
-    if (chatContainerRef.current) {
+  useEffect(() =>
+  {
+    if (chatContainerRef.current)
+    {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  if (!username || !roomId)
+  {
+    return <div className="text-white">Loading...</div>;
+  }
 
   return (
     <div className="relative w-full h-screen bg-transparent overflow-hidden">
@@ -56,15 +61,26 @@ const ChatRoom = ({ username, roomId, room }) => {
               className="h-[500px] bg-gray-800 bg-opacity-90 p-4 rounded-md overflow-y-auto scroll-smooth custom-scrollbar"
               style={{ maxHeight: '500px', overflowY: 'auto' }}
             >
-              {messages.map((msg, index) => (
-                <ChatMessage
-                  key={index}
-                  username={msg.username}
-                  message={msg.message}
-                  timestamp={msg.timestamp}
-                  isOwnMessage={msg.username === username}
-                />
-              ))}
+              {messages.length > 0 ? (
+                messages.map((msg, index) =>
+                {
+                  console.log('Render msg:', msg);
+                  // alert(JSON.stringify(msg)); // Thử bật lên nếu vẫn không thấy log
+                  return (
+                    <ChatMessage
+                      key={index}
+                      username={msg.username || 'Unknown'}
+                      message={msg.message}
+                      timestamp={msg.timestamp || new Date().toISOString()}
+                      isOwnMessage={msg.username === username}
+                      isSticker={msg.isSticker}
+                      isEmoji={msg.isEmoji}
+                    />
+                  );
+                })
+              ) : (
+                <p className="text-gray-400">Không có tin nhắn.</p>
+              )}
               <div ref={messagesEndRef} />
             </div>
 

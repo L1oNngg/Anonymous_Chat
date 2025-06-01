@@ -21,9 +21,16 @@ const RoomSelection = () => {
   const handleCreateRoom = () => setIsCreateModalOpen(true);
   const handleJoinRoom = () => setIsJoinModalOpen(true);
 
-  const handleRoomSubmit = (newRoom) => {
+  const handleRoomSubmit = async (newRoom) => {
     const roomCode = newRoom.type === 'private' ? uuidv4().slice(0, 8) : null;
-    setRooms([...rooms, { id: rooms.length + 1, ...newRoom, code: roomCode }]);
+    const room = { id: rooms.length + 1, ...newRoom, code: roomCode };
+    setRooms([...rooms, room]);
+    // Gọi API hoặc logic backend để set room options
+    await fetch('/api/set_room_options', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room_id: room.id, room_type: newRoom.type, options: newRoom })
+    }).catch(err => console.error('Failed to set room options:', err));
   };
 
   const handleJoinSubmit = (roomCode) => {
