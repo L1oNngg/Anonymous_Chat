@@ -5,6 +5,7 @@ from redis_client import get_redis
 from config import REDIS_CHANNEL
 from manager import manager
 from datetime import datetime
+from utils.jwt_utils import decode_jwt
 
 websocket_router = APIRouter()
 
@@ -12,11 +13,18 @@ websocket_router = APIRouter()
 async def chat_ws(websocket: WebSocket, username: str):
     client_ip = websocket.headers.get("X-Forwarded-For", "unknown")
     session_id = websocket.query_params.get("sessionId", "")
-    print(f"WebSocket connection attempt for {username} with sessionId: {session_id}")
-    if not session_id or (username not in manager.sessions) or (session_id not in manager.sessions[username]):
+    # Xác thực JWT thay vì sessionId truyền thống
+    jwt_data = decode_jwt(session_id)
+    if not jwt_data or jwt_data.get("sub") != username:
         await websocket.close(code=1008, reason="Invalid session ID")
         print(f"Rejected WebSocket connection for {username}: Invalid session ID")
         return
+
+    # Đảm bảo sessionId có trong manager.sessions để các hàm connect/disconnect không bị lỗi
+    if username not in manager.sessions:
+        manager.sessions[username] = {}
+    if session_id not in manager.sessions[username]:
+        manager.sessions[username][session_id] = username
 
     room_id = "1"  # Mặc định room_id là "1", có thể mở rộng để nhận từ query params nếu cần
     if not await manager.connect(websocket, username, client_ip, room_id):
