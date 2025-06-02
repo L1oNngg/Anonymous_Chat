@@ -8,6 +8,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "buffer": "^6.0.3",
+    "dompurify": "^3.2.6",
     "dotenv": "^16.5.0",
     "emoji-picker-react": "^4.12.2",
     "react": "^19.1.0",

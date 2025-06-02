@@ -1,5 +1,6 @@
 // src/components/feature/ChatMessage.jsx
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 const ChatMessage = ({ username, message, timestamp, isOwnMessage, isSticker, isEmoji }) =>
 {
@@ -29,7 +30,10 @@ const ChatMessage = ({ username, message, timestamp, isOwnMessage, isSticker, is
         ) : isEmoji ? (
           <span className="text-2xl">{message}</span>
         ) : (
-          <p className="text-sm break-words">{message}</p>
+          <p
+            className="text-sm break-words"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message) }}
+          ></p>
         )}
         <p className="text-xs text-gray-400 text-right mt-1">{formattedTime}</p>
       </div>
