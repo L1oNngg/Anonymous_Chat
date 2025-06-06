@@ -11,8 +11,12 @@ websocket_router = APIRouter()
 
 @websocket_router.websocket("/ws/chat/{username}")
 async def chat_ws(websocket: WebSocket, username: str):
-    client_ip = websocket.headers.get("X-Forwarded-For", "unknown")
+    # Lấy IP thật nếu có, nếu không thì dùng username làm IP (dev mode)
+    client_ip = websocket.headers.get("X-Forwarded-For")
+    if not client_ip or client_ip == "unknown":
+        client_ip = username
     session_id = websocket.query_params.get("sessionId", "")
+    room_id = websocket.query_params.get("roomId", "1")  # Lấy roomId từ query params, mặc định là "1"
     # Xác thực JWT thay vì sessionId truyền thống
     jwt_data = decode_jwt(session_id)
     if not jwt_data or jwt_data.get("sub") != username:
@@ -26,7 +30,6 @@ async def chat_ws(websocket: WebSocket, username: str):
     if session_id not in manager.sessions[username]:
         manager.sessions[username][session_id] = username
 
-    room_id = "1"  # Mặc định room_id là "1", có thể mở rộng để nhận từ query params nếu cần
     if not await manager.connect(websocket, username, client_ip, room_id):
         return
 
@@ -40,7 +43,6 @@ async def chat_ws(websocket: WebSocket, username: str):
         active_users = set()
         for session_users in manager.active_connections.get(room_id, {}).values():
             active_users.update(session_users.keys())
-        # active_users.discard(username)  # Loại bỏ chính mình khỏi danh sách (BỎ DÒNG NÀY)
         await websocket.send_json({"type": "users", "users": list(active_users)})
 
         # Gửi lịch sử tin nhắn
@@ -55,7 +57,7 @@ async def chat_ws(websocket: WebSocket, username: str):
             print(f"Received WebSocket data: {message}")
 
             if message.get("type") in ["message", "sticker"]:
-                room_id = message.get("roomId", "1")
+                room_id = message.get("roomId", room_id)
                 msg = {
                     "type": message["type"],
                     "username": username,
@@ -68,7 +70,7 @@ async def chat_ws(websocket: WebSocket, username: str):
                 await manager.broadcast(msg, room_id)
                 print(f"Broadcast message to room {room_id}: {msg}")
             elif message.get("type") == "publicKey":
-                room_id = message.get("roomId", "1")
+                room_id = message.get("roomId", room_id)
                 public_key_msg = {
                     "type": "publicKey",
                     "username": username,

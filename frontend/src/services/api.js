@@ -99,7 +99,9 @@ const sendMessage = async (username, content, roomId, type = 'message') =>
 const connectWebSocket = (username, roomId, onMessageReceived, onWebSocketError, onWebSocketClose) =>
 {
   const sessionId = localStorage.getItem('sessionId') || '';
-  const ws = new WebSocket(`${WS_BASE_URL}/ws/chat/${username}${sessionId ? `?sessionId=${sessionId}` : ''}`);
+  const ws = new WebSocket(
+    `${WS_BASE_URL}/ws/chat/${username}?sessionId=${sessionId}${roomId ? `&roomId=${roomId}` : ''}`
+  );
 
   ws.onopen = () =>
   {

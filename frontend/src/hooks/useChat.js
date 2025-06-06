@@ -59,7 +59,6 @@ const useChat = (username, roomId) =>
         roomId,
         (data) =>
         {
-          console.log('WebSocket received:', data);
           if (data.type === 'message' || data.type === 'sticker')
           {
             let messageContent;
@@ -128,7 +127,6 @@ const useChat = (username, roomId) =>
               console.log('Updated publicKeys:', updatedKeys);
               return updatedKeys;
             });
-            // Nếu trước đó bị chặn gửi do thiếu public key, có thể thử gửi lại ở đây nếu muốn (tùy logic)
           } else if (data.type === 'history')
           {
             setMessages(data.messages.map(msg =>
@@ -177,8 +175,7 @@ const useChat = (username, roomId) =>
         },
         (reason) =>
         {
-          console.log('WebSocket closed:', reason);
-          setNotifications((prev) => [...prev, { id: Date.now(), content: reason }]);
+          // Do nothing on disconnect, no notification
         }
       );
 
@@ -207,7 +204,6 @@ const useChat = (username, roomId) =>
 
     fetchMessages(roomId).then((msgs) =>
     {
-      // Map lại giống logic nhận WebSocket để sticker cũng hiển thị đúng
       const filteredMessages = msgs.map(msg =>
       {
         let messageContent = '';
@@ -269,7 +265,6 @@ const useChat = (username, roomId) =>
     if (isSending || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !keyPair || !username) return;
 
     setIsSending(true);
-    console.log('Attempting to send message:', { content, type, wsState: wsRef.current.readyState });
 
     const sessionId = localStorage.getItem('sessionId');
     let apiContent = content;
@@ -306,7 +301,6 @@ const useChat = (username, roomId) =>
     const recipients = onlineUsers.filter(u => u !== username);
     if (recipients.length === 0)
     {
-      console.warn('No recipients online, message stored locally and on server');
       setIsSending(false);
       return;
     }
@@ -314,8 +308,6 @@ const useChat = (username, roomId) =>
     const allPublicKeysAvailable = recipients.every(recipient => !!publicKeys[recipient]);
     if (!allPublicKeysAvailable)
     {
-      console.warn('Waiting for all public keys before sending encrypted message');
-      // Không hiện notification nữa
       setIsSending(false);
       return;
     }

@@ -37,6 +37,8 @@ async def remove_user_from_ip(ip: str, username: str):
     current_users = await redis.lrange(key, 0, -1)
     if not current_users:
         await redis.delete(key)
+    # Log để debug
+    import logging
     logging.info(f"Removed {username} from IP {ip}. Remaining users: {len(current_users)}")
 
 async def get_users_for_ip(ip: str) -> list:
@@ -47,5 +49,4 @@ async def get_users_for_ip(ip: str) -> list:
 async def set_session(username: str, session_id: str):
     redis = get_redis()
     key = f"session:{username}"
-    await redis.set(key, session_id)
-    await redis.expire(key, 3600)
+    await redis.set(key, session_id, ex=3600)  # TTL 1 giờ

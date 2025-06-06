@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Button from '../common/Button';
 import stickers from '../../data/stickers';
+import StickerPanel from './StickerPanel';
 
 const EMOJIS = ['😀', '😂', '😎', '🥺', '❤️', '🔥', '👍', '🎉'];
 
@@ -75,12 +76,12 @@ const ChatInput = ({ onSendMessage, onSendSticker }) =>
     if (sticker_id)
     {
       onSendSticker(sticker_id);
+      setShowStickers(false); // chỉ đóng panel, không reset state khác
     } else
     {
       setError('Không xác định được sticker!');
       console.error('Sticker URL không hợp lệ:', stickerUrl);
     }
-    setShowStickers(false);
     setIsSending(false);
   };
 
@@ -144,17 +145,7 @@ const ChatInput = ({ onSendMessage, onSendSticker }) =>
       )}
 
       {showStickers && (
-        <div className="sticker-panel absolute z-10 flex flex-wrap gap-3 p-3 bg-gray-800 bg-opacity-90 rounded-md shadow-md border border-gray-600 w-fit max-w-[300px] max-h-64 overflow-y-auto">
-          {stickers.map((sticker) => (
-            <img
-              key={sticker.src}
-              src={sticker.src}
-              alt={sticker.alt}
-              className="w-16 h-16 cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => handleStickerSelect(sticker.src)}
-            />
-          ))}
-        </div>
+        <StickerPanel onSelect={handleStickerSelect} />
       )}
     </form>
   );

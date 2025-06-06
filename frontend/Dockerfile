@@ -22,8 +22,8 @@ FROM nginx:alpine
 # Sao chép build từ giai đoạn trước
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Cấu hình Nginx (nếu cần)
-# ...
+# Thêm cấu hình Nginx custom cho SPA
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 80
