@@ -64,8 +64,6 @@ const ChatRoom = ({ username, roomId, room }) =>
               {messages.length > 0 ? (
                 messages.map((msg, index) =>
                 {
-                  console.log('Render msg:', msg);
-                  // alert(JSON.stringify(msg)); // Thử bật lên nếu vẫn không thấy log
                   return (
                     <ChatMessage
                       key={index}

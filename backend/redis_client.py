@@ -22,12 +22,12 @@ async def add_user_to_ip(ip: str, username: str, max_connections: int = 2) -> bo
     current_count = len(current_users)
 
     if current_count >= max_connections:
-        logging.warning(f"IP {ip} has reached max connections ({max_connections})")
+        # logging.warning(f"IP {ip} has reached max connections ({max_connections})")
         return False
 
     await redis.lpush(key, username)
     await redis.expire(key, 3600)
-    logging.info(f"Added {username} to IP {ip}. Current users: {current_count + 1}")
+    # logging.info(f"Added {username} to IP {ip}. Current users: {current_count + 1}")
     return True
 
 async def remove_user_from_ip(ip: str, username: str):
@@ -39,7 +39,7 @@ async def remove_user_from_ip(ip: str, username: str):
         await redis.delete(key)
     # Log để debug
     import logging
-    logging.info(f"Removed {username} from IP {ip}. Remaining users: {len(current_users)}")
+    # logging.info(f"Removed {username} from IP {ip}. Remaining users: {len(current_users)}")
 
 async def get_users_for_ip(ip: str) -> list:
     redis = get_redis()

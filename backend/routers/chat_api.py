@@ -24,6 +24,7 @@ class RoomInfo(BaseModel):
     code: str = None
     createdAt: int = None
     max_connections_per_ip: int = 2
+    password: str = None  # Thêm trường password
 
 @api_router.post("/send/")
 async def send_message(req: SendMessageRequest):

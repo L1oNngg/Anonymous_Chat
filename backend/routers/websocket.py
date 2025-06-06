@@ -21,7 +21,6 @@ async def chat_ws(websocket: WebSocket, username: str):
     jwt_data = decode_jwt(session_id)
     if not jwt_data or jwt_data.get("sub") != username:
         await websocket.close(code=1008, reason="Invalid session ID")
-        print(f"Rejected WebSocket connection for {username}: Invalid session ID")
         return
 
     # Đảm bảo sessionId có trong manager.sessions để các hàm connect/disconnect không bị lỗi
@@ -54,7 +53,6 @@ async def chat_ws(websocket: WebSocket, username: str):
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
-            print(f"Received WebSocket data: {message}")
 
             if message.get("type") in ["message", "sticker"]:
                 room_id = message.get("roomId", room_id)
@@ -68,7 +66,6 @@ async def chat_ws(websocket: WebSocket, username: str):
                 room_channel = f"{REDIS_CHANNEL}:{room_id}"
                 await redis_client.rpush(room_channel, json.dumps(msg))
                 await manager.broadcast(msg, room_id)
-                print(f"Broadcast message to room {room_id}: {msg}")
             elif message.get("type") == "publicKey":
                 room_id = message.get("roomId", room_id)
                 public_key_msg = {
@@ -79,13 +76,10 @@ async def chat_ws(websocket: WebSocket, username: str):
                 }
                 manager.store_public_key(username, message["publicKey"])  # Lưu trữ publicKey
                 await manager.broadcast(public_key_msg, room_id)
-                print(f"Broadcast publicKey for {username} to room {room_id}: {public_key_msg}")
             else:
-                print(f"Ignored message with type: {message.get('type')}")
+                pass  # print(f"Ignored message with type: {message.get('type')}")
 
     except WebSocketDisconnect as e:
-        print(f"WebSocket disconnected for {username}: {e}")
         await manager.disconnect(websocket, username, client_ip, room_id)
     except Exception as e:
-        print(f"WebSocket error for {username}: {e}")
         await manager.disconnect(websocket, username, client_ip, room_id)

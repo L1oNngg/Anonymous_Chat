@@ -174,6 +174,16 @@ const RoomSelection = () =>
       room = data.find((r) => r.code === roomCode);
       if (room)
       {
+        // Nếu phòng có password, yêu cầu nhập
+        if (room.password)
+        {
+          const inputPassword = prompt('Nhập mật khẩu phòng:');
+          if (inputPassword !== room.password)
+          {
+            alert('Sai mật khẩu!');
+            return;
+          }
+        }
         setRooms(prev => [
           ...prev,
           { ...room, joined: true }
@@ -184,6 +194,15 @@ const RoomSelection = () =>
     }
     if (room)
     {
+      if (room.password)
+      {
+        const inputPassword = prompt('Nhập mật khẩu phòng:');
+        if (inputPassword !== room.password)
+        {
+          alert('Sai mật khẩu!');
+          return;
+        }
+      }
       setRooms(prev =>
         prev.map(r => r.id === room.id ? { ...r, joined: true } : r)
       );

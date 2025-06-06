@@ -8,6 +8,7 @@ const CreateRoomModal = ({ isOpen, onClose, onSubmit }) =>
   // Luôn là private
   const [roomType] = useState('private');
   const [maxConnections, setMaxConnections] = useState(2);
+  const [password, setPassword] = useState('');
 
   if (!isOpen) return null;
 
@@ -15,7 +16,7 @@ const CreateRoomModal = ({ isOpen, onClose, onSubmit }) =>
   {
     e.preventDefault();
     const options = { max_connections_per_ip: parseInt(maxConnections) };
-    onSubmit({ name: roomName, type: 'private', max_connections_per_ip: options.max_connections_per_ip });
+    onSubmit({ name: roomName, type: 'private', max_connections_per_ip: options.max_connections_per_ip, password });
     onClose();
   };
 
@@ -32,8 +33,13 @@ const CreateRoomModal = ({ isOpen, onClose, onSubmit }) =>
             className="p-2 border border-gray-600 rounded-md bg-gray-700 text-white"
             required
           />
-          {/* Chỉ còn phòng riêng, không cho chọn loại phòng */}
-          {/* <select ...> ... </select> */}
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mật khẩu phòng (tùy chọn)"
+            className="p-2 border border-gray-600 rounded-md bg-gray-700 text-white"
+          />
           <input
             type="number"
             value={maxConnections}

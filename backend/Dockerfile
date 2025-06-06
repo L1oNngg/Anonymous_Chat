@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8000
 
 # Command để chạy ứng dụng FastAPI với Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "error", "--no-access-log"]

@@ -105,7 +105,6 @@ const connectWebSocket = (username, roomId, onMessageReceived, onWebSocketError,
 
   ws.onopen = () =>
   {
-    console.log(`WebSocket connected for ${username} in room ${roomId}`);
   };
 
   ws.onmessage = (event) =>
@@ -116,19 +115,16 @@ const connectWebSocket = (username, roomId, onMessageReceived, onWebSocketError,
       onMessageReceived(data);
     } catch (error)
     {
-      console.error('Error parsing WebSocket message:', error);
     }
   };
 
   ws.onerror = (error) =>
   {
-    console.error('WebSocket error:', error);
     if (onWebSocketError) onWebSocketError(error);
   };
 
   ws.onclose = (event) =>
   {
-    console.log('WebSocket closed:', event);
     if (event.reason)
     {
       onWebSocketClose(event.reason);
@@ -152,9 +148,6 @@ const sendWebSocketMessage = (ws, content, roomId, username) =>
       roomId,
       timestamp: new Date().toISOString(),
     }));
-  } else
-  {
-    console.error('WebSocket is not open. Cannot send message.');
   }
 };
 
@@ -162,7 +155,6 @@ const sendSticker = (ws, content, roomId, username) =>
 {
   if (ws && ws.readyState === WebSocket.OPEN)
   {
-    console.log('Sending sticker via WebSocket:', content);
     ws.send(JSON.stringify({
       type: 'sticker',
       username,
@@ -170,9 +162,6 @@ const sendSticker = (ws, content, roomId, username) =>
       roomId,
       timestamp: new Date().toISOString(),
     }));
-  } else
-  {
-    console.error('WebSocket is not open. Cannot send sticker.');
   }
 };
 

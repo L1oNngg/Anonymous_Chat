@@ -40,12 +40,12 @@ const useChat = (username, roomId) =>
 
     const initializeSession = async () =>
     {
-      console.log(`Fetching sessionId for ${username}`);
+      // console.log(`Fetching sessionId for ${username}`);
       localStorage.removeItem('sessionId');
       try
       {
         const sessionId = await fetchSessionId(username);
-        console.log(`Fetched sessionId: ${sessionId}`);
+        // console.log(`Fetched sessionId: ${sessionId}`);
         localStorage.setItem('sessionId', sessionId);
       } catch (error)
       {
@@ -66,12 +66,18 @@ const useChat = (username, roomId) =>
             let isEmoji = false;
             if (data.content && data.content.encryptedContent && keyPair)
             {
+              // Giải mã bằng private key của mình
               const theirPublicKey = publicKeys[data.username];
               if (theirPublicKey)
               {
                 const nonce = new Uint8Array(atob(data.content.nonce).split('').map(c => c.charCodeAt(0)));
                 const encryptedContent = new Uint8Array(atob(data.content.encryptedContent).split('').map(c => c.charCodeAt(0)));
-                const decrypted = nacl.box.open(encryptedContent, nonce, new Uint8Array(atob(theirPublicKey).split('').map(c => c.charCodeAt(0))), keyPair.secretKey);
+                const decrypted = nacl.box.open(
+                  encryptedContent,
+                  nonce,
+                  new Uint8Array(atob(theirPublicKey).split('').map(c => c.charCodeAt(0))),
+                  keyPair.secretKey
+                );
                 messageContent = decrypted ? new TextDecoder().decode(decrypted) : 'Tin nhắn mã hóa (không thể giải mã)';
               } else
               {
@@ -124,7 +130,7 @@ const useChat = (username, roomId) =>
             setPublicKeys((prev) =>
             {
               const updatedKeys = { ...prev, [data.username]: data.publicKey };
-              console.log('Updated publicKeys:', updatedKeys);
+              // console.log('Updated publicKeys:', updatedKeys);
               return updatedKeys;
             });
           } else if (data.type === 'history')
@@ -314,19 +320,37 @@ const useChat = (username, roomId) =>
 
     recipients.forEach(recipient =>
     {
-      const theirPublicKey = publicKeys[recipient] ? new Uint8Array(atob(publicKeys[recipient]).split('').map(c => c.charCodeAt(0))) : null;
+      const theirPublicKey = publicKeys[recipient]
+        ? new Uint8Array(atob(publicKeys[recipient]).split('').map(c => c.charCodeAt(0)))
+        : null;
       let messageContent = content;
       if (theirPublicKey && type === 'message')
       {
         const nonce = nacl.randomBytes(nacl.box.nonceLength);
-        const encrypted = nacl.box(new TextEncoder().encode(content), nonce, theirPublicKey, keyPair.secretKey);
-        messageContent = { encryptedContent: uint8ArrayToBase64(encrypted), nonce: uint8ArrayToBase64(nonce) };
+        const encrypted = nacl.box(
+          new TextEncoder().encode(content),
+          nonce,
+          theirPublicKey,
+          keyPair.secretKey
+        );
+        messageContent = {
+          encryptedContent: uint8ArrayToBase64(encrypted),
+          nonce: uint8ArrayToBase64(nonce)
+        };
+        if (type === 'message')
+        {
+          sendWebSocketMessage(wsRef.current, messageContent, roomId, username);
+        }
       } else if (type === 'sticker')
       {
         messageContent = content;
+        sendSticker(wsRef.current, messageContent, roomId, username);
       }
-      if (type === 'message') sendWebSocketMessage(wsRef.current, messageContent, roomId, username);
-      else if (type === 'sticker') sendSticker(wsRef.current, messageContent, roomId, username);
+      // Nếu là message nhưng không có publicKey thì không gửi
+      if (type === 'message' && theirPublicKey)
+      {
+        // Đã gửi ở trên
+      }
     });
 
     setIsSending(false);

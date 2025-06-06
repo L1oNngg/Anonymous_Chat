@@ -4,9 +4,8 @@ import DOMPurify from 'dompurify';
 
 const ChatMessage = ({ username, message, timestamp, isOwnMessage, isSticker, isEmoji }) =>
 {
-  // Log để debug props truyền vào
-  console.log('ChatMessage props:', { username, message, timestamp, isOwnMessage, isSticker, isEmoji });
-  // Thử alert để chắc chắn render (chỉ dùng để test, sau đó xóa)
+  // Xóa log/alert ở console trên web
+  // console.log('ChatMessage props:', { username, message, timestamp, isOwnMessage, isSticker, isEmoji });
   // alert(JSON.stringify({ username, message, isSticker }));
 
   const formattedTime = timestamp
